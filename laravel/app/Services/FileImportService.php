@@ -43,4 +43,75 @@ class FileImportService
 
         return $upload->fresh();
     }
+
+    private function parseFile(UploadedFile $file): \Generator
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if ($extension === 'csv') {
+            yield from $this->parseCsv($file->getRealPath());
+        } elseif (in_array($extension, ['xlsx', 'xls'], true)) {
+            yield from $this->parseExcel($file->getRealPath());
+        } else {
+            throw new \InvalidArgumentException('Unsupported file format. Please upload a CSV or Excel file.');
+        }
+    }
+
+    private function parseCsv(string $path): \Generator
+    {
+        $handle = fopen($path, 'r');
+
+        fgets($handle);
+
+        $header = null;
+
+        while (($row = fgetcsv($handle, 0, ';')) !== false) {
+            if ($header === null) {
+                $header = array_map('trim', $row);
+                continue;
+            }
+
+            if (count($row) !== count($header)) {
+                continue;
+            }
+
+            $data = array_combine($header, $row);
+
+            $data = array_map(function ($value) {
+                return mb_detect_encoding($value, 'UTF-8', true)
+                    ? $value
+                    : mb_convert_encoding($value, 'UTF-8', 'ISO-8859-1');
+            }, $data);
+
+            if ($this->hasRequiredColumns($data)) {
+                yield $data;
+            }
+        }
+
+        fclose($handle);
+    }
+
+    private function parseExcel(string $path): \Generator
+    {
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
+        $reader->setReadDataOnly(true);
+        $spreadsheet = $reader->load($path);
+        $sheet       = $spreadsheet->getActiveSheet();
+        $rows        = $sheet->toArray(null, true, true, false);
+
+        $header = null;
+
+        foreach ($rows as $row) {
+            if ($header === null) {
+                $header = array_map('trim', $row);
+                continue;
+            }
+
+            $data = array_combine($header, $row);
+
+            if ($this->hasRequiredColumns($data)) {
+                yield $data;
+            }
+        }
+    }
 }
