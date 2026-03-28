@@ -17,7 +17,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'mongodb'),
 
     /*
     |--------------------------------------------------------------------------
@@ -112,6 +112,22 @@ return [
             'prefix_indexes' => true,
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
+        ],
+        // Adicione este bloco dentro de 'connections' no config/database.php
+        // E mude 'default' => env('DB_CONNECTION', 'sqlite') para 'mongodb'
+
+        // No topo do arquivo já existente, o array 'connections' deve conter:
+
+        'mongodb' => [
+            'driver'   => 'mongodb',
+            'host'     => env('DB_HOST', 'mongodb'),
+            'port'     => env('DB_PORT', 27017),
+            'database' => env('DB_DATABASE', 'b3_instruments'),
+            'username' => env('DB_USERNAME', ''),
+            'password' => env('DB_PASSWORD', ''),
+            'options'  => [
+                'database' => env('DB_DATABASE', 'b3_instruments'),
+            ],
         ],
 
     ],
