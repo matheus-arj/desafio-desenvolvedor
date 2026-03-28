@@ -6,3 +6,4 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/upload', [UploadController::class, 'store']);
 Route::get('/uploads', [UploadController::class, 'index']);
+Route::get('/instruments', [InstrumentController::class, 'index']);
