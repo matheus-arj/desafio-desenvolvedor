@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Storage;
 
 class FileImportService
 {
+    private const CHUNK_SIZE = 500;
+
     private const REQUIRED_COLUMNS = [
         'RptDt', 'TckrSymb', 'MktNm', 'SctyCtgyNm', 'ISIN', 'CrpnNm',
     ];
@@ -128,5 +130,52 @@ class FileImportService
         }
 
         return true;
+    }
+
+    private function insertInChunks(\Generator $rows, string $uploadId, Upload $upload): void
+    {
+        $chunk     = [];
+        $total     = 0;
+        $firstDate = null;
+
+        foreach ($rows as $row) {
+            $record  = $this->mapRow($row, $uploadId);
+            $chunk[] = $record;
+
+            if ($firstDate === null && ! empty($record['RptDt'])) {
+                $firstDate = $record['RptDt'];
+            }
+
+            if (count($chunk) >= self::CHUNK_SIZE) {
+                Instrument::insert($chunk);
+                $total += count($chunk);
+                $chunk  = [];
+            }
+        }
+
+        if (! empty($chunk)) {
+            Instrument::insert($chunk);
+            $total += count($chunk);
+        }
+
+        $upload->update([
+            'rows_imported'  => $total,
+            'reference_date' => $firstDate ? Carbon::parse($firstDate) : null,
+        ]);
+    }
+
+    private function mapRow(array $row, string $uploadId): array
+    {
+        return [
+            'RptDt'      => trim($row['RptDt']      ?? ''),
+            'TckrSymb'   => trim($row['TckrSymb']   ?? ''),
+            'MktNm'      => trim($row['MktNm']       ?? ''),
+            'SctyCtgyNm' => trim($row['SctyCtgyNm'] ?? ''),
+            'ISIN'       => trim($row['ISIN']        ?? ''),
+            'CrpnNm'     => trim($row['CrpnNm']     ?? ''),
+            'upload_id'  => $uploadId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
     }
 }
