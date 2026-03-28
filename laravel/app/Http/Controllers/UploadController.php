@@ -9,7 +9,10 @@ use Illuminate\Http\Request;
 
 class UploadController extends Controller
 {
-    public function __construct(private FileImportService $importService) {}
+    public function __construct(
+        private FileImportService $importService,
+        private UploadService $uploadService
+    ) {}
 
     public function store(Request $request): JsonResponse
     {
@@ -33,5 +36,10 @@ class UploadController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Error importing file: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        return response()->json($this->uploadService->list($request));
     }
 }
