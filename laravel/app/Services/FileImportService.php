@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Storage;
 
 class FileImportService
 {
+    private const REQUIRED_COLUMNS = [
+        'RptDt', 'TckrSymb', 'MktNm', 'SctyCtgyNm', 'ISIN', 'CrpnNm',
+    ];
+
     public function import(UploadedFile $file): Upload
     {
         $hash = md5_file($file->getRealPath());
@@ -113,5 +117,16 @@ class FileImportService
                 yield $data;
             }
         }
+    }
+
+    private function hasRequiredColumns(array $data): bool
+    {
+        foreach (self::REQUIRED_COLUMNS as $col) {
+            if (! array_key_exists($col, $data)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
